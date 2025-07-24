@@ -47,8 +47,8 @@ These applications typically rely on EXIF metadata to organize your photos chron
 Clone the repository and install required packages:
 
 ```bash
-git clone https://github.com/yourusername/google-photos-metadata-embedder.git
-cd google-photos-metadata-embedder
+git clone https://github.com/ishadiyantos/google-photos-metadata/
+cd google-photos-metadata
 pip install -r requirements.txt
 ```
 
@@ -143,13 +143,8 @@ The script will automatically search for matching `.json`, `.supplemental-metada
 - Uses `piexif` to insert EXIF data for JPEGs
 - Uses `PIL.Image` and `PngInfo` for PNG metadata
 - Recursively processes all subdirectories
-- Removes `.DS_Store` or macOS `._` hidden files
 
 ---
-
-## 📜 License
-
-This project is licensed under the MIT License.
 
 ---
 
@@ -199,8 +194,6 @@ This script requires **Python 3.6+** and uses only standard libraries. No instal
 
 ---
 
-1.
-
 ## 🚀 Usage
 
 ```bash
@@ -216,7 +209,6 @@ python google_photos_metadata_embedder_png.py /path/to/Google_Photos_directory
 ```bash
 python google_photos_metadata_embedder_png.py "/Users/yourname/Downloads/Takeout/Google Photos"
 ```
-
 
 ---
 
@@ -250,7 +242,3 @@ After running, you will get a summary of:
 Applications like **Synology Photos**, **macOS Finder**, or **Windows Explorer** often rely on the file system timestamp when there's no EXIF data (as in PNGs). If you're importing old photos exported from Google Photos, restoring timestamps is critical for **chronological sorting and display**.
 
 ---
-
-## 📝 License
-
-This project is licensed under the MIT License.
