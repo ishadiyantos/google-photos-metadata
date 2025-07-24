@@ -3,6 +3,7 @@ import json
 from datetime import datetime, timezone
 import piexif
 from PIL import Image, PngImagePlugin
+import argparse # Import argparse module
 
 def is_image(filename):
     """Checks if the file is an image based on its extension and not a macOS '._' file."""
@@ -23,7 +24,9 @@ def find_json_file(media_path):
     """
     candidates = [
         media_path + '.supplemental-metadata.json',
-        media_path + '.suppl.json'
+        media_path + '.suppl.json',
+        # Added .json as a common alternative for Google Takeout
+        media_path + '.json' 
     ]
     for path in candidates:
         if os.path.exists(path):
@@ -69,7 +72,8 @@ def add_gps_info(exif_dict, lat, lng, alt):
         gps_ifd[piexif.GPSIFD.GPSLongitude] = to_deg(lng)
     if alt is not None:
         gps_ifd[piexif.GPSIFD.GPSAltitude] = (int(alt * 100), 100)
-        gps_ifd[piexif.GPSIFD.GPSAltitudeRef] = 0 if alt >= 0 else 1
+        gps_ifd[piexif.GPSIFD.GPSAltitude] = (int(abs(alt) * 100), 100) # Ensure altitude is positive for representation
+        gps_ifd[piexif.GPSIFD.GPSAltitudeRef] = 0 if alt >= 0 else 1 # 0 for above sea level, 1 for below sea level
     exif_dict['GPS'] = gps_ifd
 
 def embed_full_exif_jpeg(image_path, json_data, datetime_str):
@@ -98,13 +102,16 @@ def embed_full_exif_jpeg(image_path, json_data, datetime_str):
 
         # Set UserComment as a JSON string of selected metadata
         try:
+            # Ensure the JSON string for UserComment is not too long for EXIF standard
+            # Some parsers might truncate if > 64KB, but typically much smaller.
             short_json = {
                 "device": json_data.get("googlePhotosOrigin", {}).get("mobileUpload", {}).get("deviceType"),
                 "url": json_data.get("url"),
                 "imageViews": json_data.get("imageViews")
             }
             user_comment = json.dumps(short_json)
-            exif_dict['Exif'][piexif.ExifIFD.UserComment] = user_comment.encode('utf-8')
+            # Add a prefix to indicate encoding and version as per EXIF standard
+            exif_dict['Exif'][piexif.ExifIFD.UserComment] = piexif.ImageIFD.UserComment.encode('utf-8') + user_comment.encode('utf-8')
         except Exception as ue:
             print(f"⚠️ Failed to set UserComment: {ue}")
 
@@ -125,6 +132,7 @@ def embed_metadata_png(image_path, json_data, datetime_str):
         meta = PngImagePlugin.PngInfo()
 
         # Example metadata inserted into 'UserComment' tEXt chunk
+        # It's good practice to include a creation time if possible in PNG metadata too
         short_json = {
             "dateTimeOriginal": datetime_str,
             "device": json_data.get("googlePhotosOrigin", {}).get("mobileUpload", {}).get("deviceType"),
@@ -132,7 +140,17 @@ def embed_metadata_png(image_path, json_data, datetime_str):
             "imageViews": json_data.get("imageViews")
         }
         user_comment = json.dumps(short_json)
-        meta.add_text("UserComment", user_comment)
+        meta.add_text("UserComment", user_comment) # Standardized chunk name
+
+        # Optionally, you might add a 'Creation Time' for PNGs if desired
+        # although its interpretation can vary by viewer
+        # try:
+        #     if datetime_str:
+        #         # PNG 'Creation Time' usually follows ISO 8601 format
+        #         dt_iso = datetime.fromtimestamp(int(json_data['photoTakenTime']['timestamp']), timezone.utc).isoformat(timespec='seconds') + 'Z'
+        #         meta.add_text("Creation Time", dt_iso)
+        # except Exception as tce:
+        #     print(f"⚠️ Failed to set PNG Creation Time: {tce}")
 
         # Save again with inserted metadata
         im.save(image_path, "PNG", pnginfo=meta)
@@ -163,7 +181,7 @@ def process_directory(directory):
                             elif is_png(media_path):
                                 success = embed_metadata_png(media_path, metadata, dt_str)
                             else:
-                                print(f"⚠️ Format {media_path} is not supported for EXIF metadata embedding.")
+                                print(f"⚠️ Format {media_path} is not supported for EXIF/metadata embedding by this script.")
                                 success = False # Mark as failed if format is not supported
                             if success:
                                 successful_images.append(media_path)
@@ -180,7 +198,9 @@ def process_directory(directory):
     print(f"✅ Done. Successful: {len(successful_images)}, Failed: {len(failed_images)}")
 
 if __name__ == "__main__":
-    # IMPORTANT: Change this path to your Google Photos Takeout folder!
-    base_folder = "/Volumes/PKP-Salim/Photos2/Takeout/Google Photos" 
-    process_directory(base_folder)
-    # SUCCESS!!
+    parser = argparse.ArgumentParser(description="Embeds Google Photos JSON metadata (timestamp, GPS, etc.) into image files (JPG/PNG).")
+    parser.add_argument('base_folder', help='Path to the root directory containing your Google Photos Takeout data (e.g., the "Google Photos" folder).')
+    args = parser.parse_args()
+
+    # The base_folder will now be taken from the command-line argument
+    process_directory(args.base_folder)

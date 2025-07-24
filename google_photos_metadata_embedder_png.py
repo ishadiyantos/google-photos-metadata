@@ -1,6 +1,23 @@
 import os
 import json
 from datetime import datetime, timezone
+import argparse # Import the argparse module
+
+def find_json_file(media_path):
+    """
+    Attempts to find the Google Photos metadata JSON file associated with a media file.
+    Checks for .supplemental-metadata.json, .suppl.json, and .json suffixes.
+    This function is adapted from the more comprehensive script for better robustness.
+    """
+    candidates = [
+        media_path + '.supplemental-metadata.json',
+        media_path + '.suppl.json',
+        media_path + '.json' # Added as a common Google Takeout JSON naming convention
+    ]
+    for path in candidates:
+        if os.path.exists(path):
+            return path
+    return None
 
 def get_photo_timestamp(json_path):
     """
@@ -26,6 +43,8 @@ def update_file_timestamp(file_path, new_timestamp):
     Uses os.utime() to set the timestamp.
     """
     try:
+        # os.utime expects (access_time, modification_time)
+        # We set both to the photo's original timestamp
         os.utime(file_path, (new_timestamp, new_timestamp))
         return True
     except Exception as e:
@@ -46,10 +65,12 @@ def process_pngs(base_dir):
                 continue
 
             image_path = os.path.join(root, file)
-            json_path = image_path + '.supplemental-metadata.json' # Assuming this specific JSON naming convention
+            
+            # Use the more robust find_json_file function to locate the JSON
+            json_path = find_json_file(image_path)
 
             # Skip if no associated JSON metadata file is found
-            if not os.path.exists(json_path):
+            if not json_path: # `find_json_file` returns None if not found
                 skipped.append(image_path)
                 print(f"⏭️ No JSON metadata found for: {file}")
                 continue
@@ -75,8 +96,18 @@ def process_pngs(base_dir):
     print(f"⚪ Skipped (no JSON found): {len(skipped)}")
 
 if __name__ == "__main__":
-    # IMPORTANT: Change this path to your Google Photos Takeout folder or specific subfolder!
-    base_folder = "/Volumes/PKP-Salim/Photos2/Takeout/Google Photos/Photos from 2025"
-    process_pngs(base_folder)
+    # Set up command-line argument parsing
+    parser = argparse.ArgumentParser(
+        description="Updates the file system timestamp (modification/access time) of PNG files "
+                    "based on the 'photoTakenTime' in their associated Google Photos Takeout JSON metadata."
+    )
+    parser.add_argument(
+        'base_folder',
+        help='Path to the root directory containing your Google Photos Takeout data (e.g., the "Google Photos" folder) '
+             'or a specific subfolder within it.'
+    )
+    args = parser.parse_args()
 
-    # SUCCESS!!
+    # The base_folder will now be taken from the command-line argument
+    process_pngs(args.base_folder)
+    # print("SUCCESS!!")

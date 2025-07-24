@@ -64,7 +64,7 @@ pillow
 ## 🚀 Usage
 
 ```bash
-python embed_metadata.py /path/to/Google_Photos_directory
+python google_photos_metadata_embedder.py /path/to/Google_Photos_directory
 ```
 
 ### Positional Arguments
@@ -74,7 +74,7 @@ python embed_metadata.py /path/to/Google_Photos_directory
 ### Example
 
 ```bash
-python embed_metadata.py "/Users/yourname/Downloads/Takeout/Google Photos"
+python google_photos_metadata_embedder.py "/Users/yourname/Downloads/Takeout/Google Photos"
 ```
 
 ---
@@ -199,18 +199,24 @@ This script requires **Python 3.6+** and uses only standard libraries. No instal
 
 ---
 
+1.
+
 ## 🚀 Usage
 
-1. **Edit the script** and change the `base_folder` variable to point to your Google Photos Takeout folder or subfolder:
+```bash
+python google_photos_metadata_embedder_png.py /path/to/Google_Photos_directory
+```
 
-   ```python
-   base_folder = "/path/to/Google Photos/Photos from 2025"
-   ```
-2. Run the script:
+### Positional Arguments
 
-   ```bash
-   python restore_png_timestamp.py
-   ```
+- `/path/to/Google_Photos_directory`: The root folder from your Google Takeout download (e.g., `"Google Photos"`). The script will recursively walk through all subfolders.
+
+### Example
+
+```bash
+python google_photos_metadata_embedder_png.py "/Users/yourname/Downloads/Takeout/Google Photos"
+```
+
 
 ---
 
